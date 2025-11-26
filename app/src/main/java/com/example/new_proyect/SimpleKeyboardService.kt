@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewParent
 import android.view.WindowInsets
+import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.text.TextUtils
@@ -347,7 +348,27 @@ class SimpleKeyboardService : InputMethodService(), LifecycleOwner, SavedStateRe
                 connection.commitText(" ", 1)
             }
             KeyConstants.ENTER, KeyConstants.RETURN -> {
-                connection.commitText("\n", 1)
+                // Enviar acción de editor (buscar, enviar, etc.) o Enter según el contexto
+                val editorInfo = currentInputEditorInfo
+                if (editorInfo != null) {
+                    val action = editorInfo.imeOptions and EditorInfo.IME_MASK_ACTION
+                    if (action != EditorInfo.IME_ACTION_NONE) {
+                        // Si hay una acción específica (buscar, enviar, etc.), ejecutarla
+                        connection.performEditorAction(action)
+                    } else {
+                        // Si no hay acción específica, enviar Enter como evento de tecla
+                        val event = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
+                        connection.sendKeyEvent(event)
+                        val eventUp = KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER)
+                        connection.sendKeyEvent(eventUp)
+                    }
+                } else {
+                    // Si no hay editorInfo, enviar Enter como evento de tecla
+                    val event = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
+                    connection.sendKeyEvent(event)
+                    val eventUp = KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER)
+                    connection.sendKeyEvent(eventUp)
+                }
             }
             KeyConstants.NUMERIC_MODE -> {
                 onStateChange(currentUpperCase, true, false, currentCapsLock)
@@ -384,6 +405,7 @@ class SimpleKeyboardService : InputMethodService(), LifecycleOwner, SavedStateRe
         var isNumericMode by remember { mutableStateOf(false) }
         var isSymbolMode by remember { mutableStateOf(false) }
         var isCapsLock by remember { mutableStateOf(false) }
+        var isDarkMode by remember { mutableStateOf(false) }
         
         KeyboardView(
             onKeyPress = { key ->
@@ -407,7 +429,9 @@ class SimpleKeyboardService : InputMethodService(), LifecycleOwner, SavedStateRe
                 if (!it) isCapsLock = false // Desactivar caps lock si se desactiva manualmente
             },
             onNumericModeChange = { isNumericMode = it },
-            onSymbolModeChange = { isSymbolMode = it }
+            onSymbolModeChange = { isSymbolMode = it },
+            isDarkMode = isDarkMode,
+            onDarkModeChange = { isDarkMode = it }
         )
     }
 }
@@ -441,16 +465,35 @@ private object KeyboardConstants {
     val TOP_PADDING = 8.dp
     val MAX_HEIGHT_SCREEN_RATIO = 0.5f
     
-    // Colores mejorados
-    val KEY_BACKGROUND_DEFAULT = Color(0xFFF5F5F5)
-    val KEY_BACKGROUND_PRESSED = Color(0xFFD8D8D8)
-    val KEY_BORDER_DEFAULT = Color(0xFFE0E0E0)
-    val KEY_BORDER_PRESSED = Color(0xFFB0B0B0)
-    val KEYBOARD_BACKGROUND = Color(0xFFFFFFFF)
-    val TOP_BAR_BUTTON_DEFAULT = Color(0xFFE8E8E8)
-    val TOP_BAR_BUTTON_ACTIVE = Color(0xFF2196F3)
-    val TOP_BAR_BUTTON_BORDER_DEFAULT = Color(0xFFD0D0D0)
-    val TOP_BAR_BUTTON_BORDER_ACTIVE = Color(0xFF1976D2)
+    // Colores modo claro
+    val KEY_BACKGROUND_DEFAULT_LIGHT = Color(0xFFF5F5F5)
+    val KEY_BACKGROUND_PRESSED_LIGHT = Color(0xFFD8D8D8)
+    val KEY_BORDER_DEFAULT_LIGHT = Color(0xFFE0E0E0)
+    val KEY_BORDER_PRESSED_LIGHT = Color(0xFFB0B0B0)
+    val KEYBOARD_BACKGROUND_LIGHT = Color(0xFFFFFFFF)
+    val KEY_TEXT_COLOR_LIGHT = Color(0xFF1A1A1A)
+    val KEY_SPECIAL_BACKGROUND_LIGHT = Color(0xFFE0E0E0)
+    val KEY_SPECIAL_TEXT_LIGHT = Color(0xFFFFFFFF)
+    val TOP_BAR_BUTTON_DEFAULT_LIGHT = Color(0xFFE8E8E8)
+    val TOP_BAR_BUTTON_ACTIVE_LIGHT = Color(0xFF2196F3)
+    val TOP_BAR_BUTTON_BORDER_DEFAULT_LIGHT = Color(0xFFD0D0D0)
+    val TOP_BAR_BUTTON_BORDER_ACTIVE_LIGHT = Color(0xFF1976D2)
+    val TOP_BAR_TEXT_LIGHT = Color(0xFFB0B0B0)
+    
+    // Colores modo oscuro
+    val KEY_BACKGROUND_DEFAULT_DARK = Color(0xFF2A2A2A)
+    val KEY_BACKGROUND_PRESSED_DARK = Color(0xFF3A3A3A)
+    val KEY_BORDER_DEFAULT_DARK = Color(0xFF3A3A3A)
+    val KEY_BORDER_PRESSED_DARK = Color(0xFF4A4A4A)
+    val KEYBOARD_BACKGROUND_DARK = Color(0xFF1A1A1A)
+    val KEY_TEXT_COLOR_DARK = Color(0xFFE0E0E0)
+    val KEY_SPECIAL_BACKGROUND_DARK = Color(0xFF3A3A3A)
+    val KEY_SPECIAL_TEXT_DARK = Color(0xFFFFFFFF)
+    val TOP_BAR_BUTTON_DEFAULT_DARK = Color(0xFF2A2A2A)
+    val TOP_BAR_BUTTON_ACTIVE_DARK = Color(0xFF2196F3)
+    val TOP_BAR_BUTTON_BORDER_DEFAULT_DARK = Color(0xFF3A3A3A)
+    val TOP_BAR_BUTTON_BORDER_ACTIVE_DARK = Color(0xFF1976D2)
+    val TOP_BAR_TEXT_DARK = Color(0xFF808080)
 }
 
 /**
@@ -463,10 +506,12 @@ fun KeyboardView(
     isNumericMode: Boolean,
     isSymbolMode: Boolean,
     isCapsLock: Boolean = false,
+    isDarkMode: Boolean = false,
     onBackspaceLongPress: () -> Unit = {},
     onUpperCaseChange: (Boolean) -> Unit,
     onNumericModeChange: (Boolean) -> Unit,
-    onSymbolModeChange: (Boolean) -> Unit
+    onSymbolModeChange: (Boolean) -> Unit,
+    onDarkModeChange: (Boolean) -> Unit
 ) {
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
@@ -484,7 +529,7 @@ fun KeyboardView(
                 if (areKeysVisible) keyboardHeight 
                 else KeyboardConstants.HIDDEN_KEYBOARD_HEIGHT
             )
-            .background(KeyboardConstants.KEYBOARD_BACKGROUND)
+            .background(if (isDarkMode) KeyboardConstants.KEYBOARD_BACKGROUND_DARK else KeyboardConstants.KEYBOARD_BACKGROUND_LIGHT)
             .padding(
                 top = KeyboardConstants.TOP_PADDING,
                 bottom = if (areKeysVisible) 
@@ -498,6 +543,7 @@ fun KeyboardView(
         KeyboardTopBar(
             areKeysVisible = areKeysVisible,
             isResizeModeActive = isResizeModeActive,
+            isDarkMode = isDarkMode,
             onToggleKeysVisibility = {
                 areKeysVisible = !areKeysVisible
                 if (!areKeysVisible) {
@@ -505,6 +551,7 @@ fun KeyboardView(
                 }
             },
             onToggleResizeMode = { isResizeModeActive = !isResizeModeActive },
+            onToggleDarkMode = { onDarkModeChange(!isDarkMode) },
             onResize = { dragAmountY: Float ->
                 keyboardHeight = with(density) {
                     (keyboardHeight - dragAmountY.toDp()).coerceIn(
@@ -539,8 +586,10 @@ fun KeyboardView(
 private fun KeyboardTopBar(
     areKeysVisible: Boolean,
     isResizeModeActive: Boolean,
+    isDarkMode: Boolean,
     onToggleKeysVisibility: () -> Unit,
     onToggleResizeMode: () -> Unit,
+    onToggleDarkMode: () -> Unit,
     onResize: (Float) -> Unit,
     density: androidx.compose.ui.unit.Density
 ) {
@@ -556,7 +605,8 @@ private fun KeyboardTopBar(
         KeyboardControlButton(
             icon = if (areKeysVisible) "⚙" else "⌨",
             isActive = !areKeysVisible,
-            onClick = onToggleKeysVisibility
+            onClick = onToggleKeysVisibility,
+            isDarkMode = isDarkMode
         )
         
         // Área de arrastre para resize con texto "PLATANITOS"
@@ -575,7 +625,7 @@ private fun KeyboardTopBar(
             // Texto "PLATANITOS" como firma sutil
             Text(
                 text = "PLATANITOS",
-                color = Color(0xFFB0B0B0), // Gris suave
+                color = if (isDarkMode) KeyboardConstants.TOP_BAR_TEXT_DARK else KeyboardConstants.TOP_BAR_TEXT_LIGHT,
                 fontSize = 10.sp,
                 fontFamily = FontFamily.SansSerif, // Fuente similar a Comfortaa (redondeada)
                 fontWeight = FontWeight.Normal,
@@ -594,13 +644,27 @@ private fun KeyboardTopBar(
             }
         }
         
-        // Botón derecho: resize (solo visible cuando las teclas están visibles)
+        // Botones derechos: tema oscuro/claro y resize (solo visible cuando las teclas están visibles)
         if (areKeysVisible) {
-            KeyboardControlButton(
-                icon = "⤢",
-                isActive = isResizeModeActive,
-                onClick = onToggleResizeMode
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Botón de tema oscuro/claro
+                KeyboardControlButton(
+                    icon = if (isDarkMode) "☀" else "🌙",
+                    isActive = isDarkMode,
+                    onClick = onToggleDarkMode,
+                    isDarkMode = isDarkMode
+                )
+                // Botón de resize
+                KeyboardControlButton(
+                    icon = "⤢",
+                    isActive = isResizeModeActive,
+                    onClick = onToggleResizeMode,
+                    isDarkMode = isDarkMode
+                )
+            }
         }
     }
 }
@@ -612,29 +676,38 @@ private fun KeyboardTopBar(
 private fun KeyboardControlButton(
     icon: String,
     isActive: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isDarkMode: Boolean = false
 ) {
+    val backgroundColor = if (isDarkMode) {
+        if (isActive) KeyboardConstants.TOP_BAR_BUTTON_ACTIVE_DARK
+        else KeyboardConstants.TOP_BAR_BUTTON_DEFAULT_DARK
+    } else {
+        if (isActive) KeyboardConstants.TOP_BAR_BUTTON_ACTIVE_LIGHT
+        else KeyboardConstants.TOP_BAR_BUTTON_DEFAULT_LIGHT
+    }
+    
+    val borderColor = if (isDarkMode) {
+        if (isActive) KeyboardConstants.TOP_BAR_BUTTON_BORDER_ACTIVE_DARK
+        else KeyboardConstants.TOP_BAR_BUTTON_BORDER_DEFAULT_DARK
+    } else {
+        if (isActive) KeyboardConstants.TOP_BAR_BUTTON_BORDER_ACTIVE_LIGHT
+        else KeyboardConstants.TOP_BAR_BUTTON_BORDER_DEFAULT_LIGHT
+    }
+    
     Box(
         modifier = Modifier
             .width(KeyboardConstants.BUTTON_SIZE)
             .height(KeyboardConstants.BUTTON_HEIGHT)
             .clip(RoundedCornerShape(10.dp))
-            .background(
-                if (isActive) KeyboardConstants.TOP_BAR_BUTTON_ACTIVE 
-                else KeyboardConstants.TOP_BAR_BUTTON_DEFAULT
-            )
-            .border(
-                1.5.dp,
-                if (isActive) KeyboardConstants.TOP_BAR_BUTTON_BORDER_ACTIVE 
-                else KeyboardConstants.TOP_BAR_BUTTON_BORDER_DEFAULT,
-                RoundedCornerShape(10.dp)
-            )
+            .background(backgroundColor)
+            .border(1.5.dp, borderColor, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = icon,
-            color = if (isActive) Color.White else Color(0xFF333333),
+            color = Color.White,
             fontSize = 18.sp,
             fontWeight = if (icon == "⤢") FontWeight.Bold else FontWeight.Medium
         )
@@ -651,6 +724,7 @@ private fun KeyboardContentArea(
     isSymbolMode: Boolean,
     isUpperCase: Boolean,
     isCapsLock: Boolean = false,
+    isDarkMode: Boolean = false,
     keyboardHeight: androidx.compose.ui.unit.Dp,
     onKeyPress: (String) -> Unit,
     onBackspaceLongPress: () -> Unit = {},
@@ -689,6 +763,7 @@ private fun KeyboardContentArea(
                 },
                 isUpperCase = isUpperCase,
                 isCapsLock = isCapsLock,
+                isDarkMode = isDarkMode,
                 keyboardHeight = keyboardHeight,
                 onBackspaceLongPress = onBackspaceLongPress
             )

@@ -28,6 +28,7 @@ fun GboardVisualKeyboard(
     onKeyPress: (String) -> Unit,
     isUpperCase: Boolean = false,
     isCapsLock: Boolean = false,
+    isDarkMode: Boolean = false,
     keyboardHeight: androidx.compose.ui.unit.Dp = 320.dp,
     onBackspaceLongPress: () -> Unit = {}
 ) {
@@ -51,6 +52,7 @@ fun GboardVisualKeyboard(
             keys = listOf("Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"),
             onKeyPress = onKeyPress,
             isUpperCase = isUpperCase || isCapsLock,
+            isDarkMode = isDarkMode,
             keyHeight = keyHeight,
             fontSize = fontSize
         )
@@ -61,6 +63,7 @@ fun GboardVisualKeyboard(
             startSpacer = true,
             onKeyPress = onKeyPress,
             isUpperCase = isUpperCase || isCapsLock,
+            isDarkMode = isDarkMode,
             keyHeight = keyHeight,
             fontSize = fontSize
         )
@@ -78,6 +81,7 @@ fun GboardVisualKeyboard(
                 isPressed = isUpperCase || isCapsLock,
                 isCapsLock = isCapsLock,
                 isSpecialKey = true,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -86,6 +90,7 @@ fun GboardVisualKeyboard(
                 modifier = Modifier.weight(1f),
                 onKeyPress = onKeyPress,
                 isUpperCase = isUpperCase || isCapsLock,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -94,6 +99,7 @@ fun GboardVisualKeyboard(
                 modifier = Modifier.weight(1f),
                 onKeyPress = onKeyPress,
                 isUpperCase = isUpperCase || isCapsLock,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -102,6 +108,7 @@ fun GboardVisualKeyboard(
                 modifier = Modifier.weight(1f),
                 onKeyPress = onKeyPress,
                 isUpperCase = isUpperCase || isCapsLock,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -110,6 +117,7 @@ fun GboardVisualKeyboard(
                 modifier = Modifier.weight(1f),
                 onKeyPress = onKeyPress,
                 isUpperCase = isUpperCase || isCapsLock,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -118,6 +126,7 @@ fun GboardVisualKeyboard(
                 modifier = Modifier.weight(1f),
                 onKeyPress = onKeyPress,
                 isUpperCase = isUpperCase || isCapsLock,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -126,6 +135,7 @@ fun GboardVisualKeyboard(
                 modifier = Modifier.weight(1f),
                 onKeyPress = onKeyPress,
                 isUpperCase = isUpperCase || isCapsLock,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -134,6 +144,7 @@ fun GboardVisualKeyboard(
                 modifier = Modifier.weight(1f),
                 onKeyPress = onKeyPress,
                 isUpperCase = isUpperCase || isCapsLock,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -144,6 +155,7 @@ fun GboardVisualKeyboard(
                 onKeyPress = onKeyPress,
                 onLongPress = onBackspaceLongPress,
                 isSpecialKey = true,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -159,6 +171,7 @@ fun GboardVisualKeyboard(
                 modifier = Modifier.weight(1.5f),
                 onKeyPress = onKeyPress,
                 isSpecialKey = true,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -166,6 +179,7 @@ fun GboardVisualKeyboard(
                 text = ".",
                 modifier = Modifier.weight(1.5f),
                 onKeyPress = onKeyPress,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -173,6 +187,7 @@ fun GboardVisualKeyboard(
                 text = "espacio",
                 modifier = Modifier.weight(4f),
                 onKeyPress = onKeyPress,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -181,6 +196,7 @@ fun GboardVisualKeyboard(
                 modifier = Modifier.weight(1.5f),
                 onKeyPress = onKeyPress,
                 isSpecialKey = true,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -194,6 +210,7 @@ fun KeyboardRow(
     startSpacer: Boolean = false,
     onKeyPress: (String) -> Unit,
     isUpperCase: Boolean = false,
+    isDarkMode: Boolean = false,
     keyHeight: androidx.compose.ui.unit.Dp = 48.dp,
     fontSize: androidx.compose.ui.unit.TextUnit = 18.sp
 ) {
@@ -210,6 +227,7 @@ fun KeyboardRow(
                 modifier = Modifier.weight(1f),
                 onKeyPress = onKeyPress,
                 isUpperCase = isUpperCase,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -230,6 +248,7 @@ fun KeyboardKey(
     isPressed: Boolean = false,
     isCapsLock: Boolean = false,
     isSpecialKey: Boolean = false,
+    isDarkMode: Boolean = false,
     keyHeight: androidx.compose.ui.unit.Dp = 48.dp,
     fontSize: androidx.compose.ui.unit.TextUnit = 18.sp
 ) {
@@ -268,24 +287,44 @@ fun KeyboardKey(
         }
     }
     
-    // Optimizar: calcular colores con remember
-    val backgroundColor = remember(isSpecialKey, isActuallyPressed) {
-        if (isSpecialKey) {
-            if (isActuallyPressed) Color(0xFF9E9E9E) else Color(0xFFE0E0E0)
+    // Optimizar: calcular colores con remember según el tema
+    val backgroundColor = remember(isSpecialKey, isActuallyPressed, isDarkMode) {
+        if (isDarkMode) {
+            if (isSpecialKey) {
+                if (isActuallyPressed) Color(0xFF4A4A4A) else Color(0xFF3A3A3A)
+            } else {
+                if (isActuallyPressed) Color(0xFF3A3A3A) else Color(0xFF2A2A2A)
+            }
         } else {
-            if (isActuallyPressed) Color(0xFFD8D8D8) else Color(0xFFFFFFFF)
+            if (isSpecialKey) {
+                if (isActuallyPressed) Color(0xFF9E9E9E) else Color(0xFFE0E0E0)
+            } else {
+                if (isActuallyPressed) Color(0xFFD8D8D8) else Color(0xFFFFFFFF)
+            }
         }
     }
     
-    val borderColor = remember(isActuallyPressed) {
-        if (isActuallyPressed) Color(0xFFB0B0B0) else Color(0xFFE0E0E0)
+    val borderColor = remember(isActuallyPressed, isDarkMode) {
+        if (isDarkMode) {
+            if (isActuallyPressed) Color(0xFF4A4A4A) else Color(0xFF3A3A3A)
+        } else {
+            if (isActuallyPressed) Color(0xFFB0B0B0) else Color(0xFFE0E0E0)
+        }
     }
     
-    val textColor = remember(isSpecialKey, isActuallyPressed) {
-        if (isSpecialKey) {
-            if (isActuallyPressed) Color(0xFFE0E0E0) else Color(0xFFFFFFFF)
+    val textColor = remember(isSpecialKey, isActuallyPressed, isDarkMode) {
+        if (isDarkMode) {
+            if (isSpecialKey) {
+                Color(0xFFFFFFFF)
+            } else {
+                Color(0xFFE0E0E0)
+            }
         } else {
-            if (isActuallyPressed) Color(0xFF000000) else Color(0xFF1A1A1A)
+            if (isSpecialKey) {
+                if (isActuallyPressed) Color(0xFFE0E0E0) else Color(0xFFFFFFFF)
+            } else {
+                if (isActuallyPressed) Color(0xFF000000) else Color(0xFF1A1A1A)
+            }
         }
     }
     
@@ -318,6 +357,7 @@ fun KeyboardKey(
 fun NumericKeyboard(
     onKeyPress: (String) -> Unit,
     isSymbolMode: Boolean = false,
+    isDarkMode: Boolean = false,
     keyboardHeight: androidx.compose.ui.unit.Dp = 320.dp
 ) {
     // Calcular tamaño de teclas basado en la altura del teclado - optimizado con remember
@@ -340,6 +380,7 @@ fun NumericKeyboard(
             KeyboardRow(
                 keys = listOf("[", "]", "{", "}", "#", "%", "^", "*", "+", "="),
                 onKeyPress = onKeyPress,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -348,6 +389,7 @@ fun NumericKeyboard(
             KeyboardRow(
                 keys = listOf("_", "\\", "|", "~", "<", ">", "€", "£", "¥", "•"),
                 onKeyPress = onKeyPress,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -357,21 +399,22 @@ fun NumericKeyboard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                KeyboardKey(text = ".", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = ",", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = "?", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = "!", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = "'", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = "\"", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = ":", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = ";", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = "⌫", modifier = Modifier.weight(1.5f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = ".", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = ",", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = "?", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = "!", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = "'", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = "\"", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = ":", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = ";", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = "⌫", modifier = Modifier.weight(1.5f), onKeyPress = onKeyPress, isSpecialKey = true, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
             }
         } else {
             // Modo números - Primera fila: 1 2 3 4 5 6 7 8 9 0
             KeyboardRow(
                 keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0"),
                 onKeyPress = onKeyPress,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -380,6 +423,7 @@ fun NumericKeyboard(
             KeyboardRow(
                 keys = listOf("-", "/", ":", ";", "(", ")", "$", "&", "@", "\""),
                 onKeyPress = onKeyPress,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -394,19 +438,21 @@ fun NumericKeyboard(
                     modifier = Modifier.weight(1.5f),
                     onKeyPress = onKeyPress,
                     isSpecialKey = true,
+                    isDarkMode = isDarkMode,
                     keyHeight = keyHeight,
                     fontSize = fontSize
                 )
-                KeyboardKey(text = ".", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = ",", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = "?", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = "!", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
-                KeyboardKey(text = "'", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = ".", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = ",", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = "?", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = "!", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
+                KeyboardKey(text = "'", modifier = Modifier.weight(1f), onKeyPress = onKeyPress, isDarkMode = isDarkMode, keyHeight = keyHeight, fontSize = fontSize)
                 KeyboardKey(
                     text = "⌫",
                     modifier = Modifier.weight(1.5f),
                     onKeyPress = onKeyPress,
                     isSpecialKey = true,
+                    isDarkMode = isDarkMode,
                     keyHeight = keyHeight,
                     fontSize = fontSize
                 )
@@ -423,6 +469,7 @@ fun NumericKeyboard(
                 modifier = Modifier.weight(1.5f),
                 onKeyPress = onKeyPress,
                 isSpecialKey = true,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -430,6 +477,7 @@ fun NumericKeyboard(
                 text = "espacio",
                 modifier = Modifier.weight(5.5f),
                 onKeyPress = onKeyPress,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )
@@ -438,6 +486,7 @@ fun NumericKeyboard(
                 modifier = Modifier.weight(1.5f),
                 onKeyPress = onKeyPress,
                 isSpecialKey = true,
+                isDarkMode = isDarkMode,
                 keyHeight = keyHeight,
                 fontSize = fontSize
             )

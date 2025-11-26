@@ -1,17 +1,29 @@
 package com.example.new_proyect
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -34,21 +46,49 @@ import androidx.compose.ui.unit.sp
 import com.example.new_proyect.ui.theme.New_ProyectTheme
 
 class MainActivity : ComponentActivity() {
+    private lateinit var updateManager: UpdateManager
+    private var onPermissionGranted: (() -> Unit)? = null
+    
+    // Launcher para permisos de almacenamiento
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permiso concedido, continuar con la actualización
+            onPermissionGranted?.invoke()
+        }
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
+        updateManager = UpdateManager(this)
+        
         // Optimizar: configurar el contenido de forma eficiente
         setContent {
             New_ProyectTheme {
-                SettingsScreen()
+                SettingsScreen(
+                    updateManager = updateManager,
+                    requestPermission = { onGranted ->
+                        onPermissionGranted = onGranted
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                            requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        } else {
+                            onGranted()
+                        }
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    updateManager: UpdateManager,
+    requestPermission: (() -> Unit) -> Unit
+) {
     val context = LocalContext.current
     
     Box(
@@ -57,7 +97,13 @@ fun SettingsScreen() {
             .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
+        val scrollState = rememberScrollState()
+        
         Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
@@ -183,6 +229,115 @@ fun SettingsScreen() {
                     )
                 }
             )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Botón para buscar actualización
+            var showVersionDialog by remember { mutableStateOf(false) }
+            var showUpdateDialog by remember { mutableStateOf(false) }
+            var appVersion by remember { mutableStateOf("") }
+            var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+            var isLoading by remember { mutableStateOf(false) }
+            var errorMessage by remember { mutableStateOf<String?>(null) }
+            
+            Box(
+                modifier = Modifier
+                    .width(200.dp)
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF3A3A3A))
+                    .border(1.dp, Color(0xFF4A4A4A), RoundedCornerShape(12.dp))
+                    .clickable {
+                        // Función para iniciar la actualización
+                        fun startUpdate() {
+                            // Verificar permiso de instalación
+                            if (!updateManager.canInstallPackages()) {
+                                updateManager.requestInstallPermission()
+                                return
+                            }
+                            
+                            // Iniciar proceso de actualización
+                            isLoading = true
+                            errorMessage = null
+                            
+                            // Obtener información de actualización en una coroutine
+                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                                try {
+                                    val service = UpdateServiceFactory.create()
+                                    val info = service.getUpdateInfo()
+                                    updateInfo = info
+                                    
+                                    // Descargar e instalar
+                                    val apkFile = updateManager.downloadApk(info.downloadUrl)
+                                    if (apkFile != null) {
+                                        updateManager.installApk(apkFile)
+                                    } else {
+                                        errorMessage = "Error al descargar la actualización"
+                                    }
+                                } catch (e: Exception) {
+                                    errorMessage = "Error: ${e.message}"
+                                    e.printStackTrace()
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        }
+                        
+                        // Verificar permisos de almacenamiento (solo para Android < 13)
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                            val hasStoragePermission = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                            ) == PackageManager.PERMISSION_GRANTED
+                            
+                            if (!hasStoragePermission) {
+                                requestPermission { startUpdate() }
+                                return@clickable
+                            }
+                        }
+                        
+                        startUpdate()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (isLoading) "Descargando..." else "Buscar actualización",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            
+            // Diálogo para mostrar errores
+            if (errorMessage != null) {
+                AlertDialog(
+                    onDismissRequest = { errorMessage = null },
+                    title = {
+                        Text(
+                            text = "Error",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = errorMessage ?: "Error desconocido",
+                            color = Color.White
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = { errorMessage = null },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF3A3A3A)
+                            )
+                        ) {
+                            Text("Aceptar", color = Color.White)
+                        }
+                    },
+                    containerColor = Color(0xFF2A2A2A)
+                )
+            }
         }
     }
 }
