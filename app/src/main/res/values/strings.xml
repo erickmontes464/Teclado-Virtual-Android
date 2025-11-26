@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">ALMACEN CENTRAL</string>
+    <string name="keyboard_name">ABA_KEYBOARD</string>
+    <string name="keyboard_signature">EV</string>
+    <string name="keyboard_description">Creado por EV</string>
+    <string name="app_version">ver.1</string>
+    <string name="copyright">© 2024 EV. Todos los derechos reservados.</string>
+</resources>
